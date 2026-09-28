@@ -1,6 +1,6 @@
-# STANFORD BarPath — hosted Python edition
+# STANFORD BarPath — 
 
-Python/OpenCV squat tracking, assisted depth markers, descriptive feedback, and MP4 exports, with a red-and-black mobile browser interface.
+Python/OpenCV squat tracking, assisted depth markers, descriptive feedback, and MP4 exports
 
 Prepared for a single-owner Render web service. This package has not yet been deployed. Connect a Render account and provide the source through a Git repository before deployment. The included render.yaml describes a free-plan service; verify plan availability and resource limits during deployment. No paid plan is authorized by this package.
 
