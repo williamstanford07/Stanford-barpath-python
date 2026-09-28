@@ -17,7 +17,7 @@ class Match:
 
 
 class PointTracker:
-    def __init__(self, search_radius=140, patch_radius=16):
+    def __init__(self, search_radius=300, patch_radius=16):
         self.search_radius = search_radius
         self.patch_radius = patch_radius
         self.point = None
@@ -120,8 +120,10 @@ class PointTracker:
         match = self._flow(gray)
         if match is None:
             match = self._search(gray, min(28, self.search_radius))
-            if match is None or match.score < .88 or self.misses:
-                match = self._search(gray, min(400, self.search_radius+self.misses*24))
+            # Keep an accepted nearby match. A larger region can introduce
+            # unrelated lookalikes and make an otherwise valid match ambiguous.
+            if match is None:
+                match = self._search(gray, min(max(gray.shape), self.search_radius+self.misses*48))
         if match is None:
             self.misses += 1
             return None

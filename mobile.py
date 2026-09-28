@@ -165,7 +165,7 @@ def analyze(identifier):
     try:
         start = int(options.get('start', 0))
         duration = min(60, max(2, float(options.get('seconds', 20))))
-        radius = min(320, max(60, int(options.get('radius', 140))))
+        radius = min(960, max(60, int(options.get('radius', 300))))
         markers = options['markers']
         enabled = bool(options.get('depth'))
         if not 0 <= start < job['count'] or not isinstance(markers, dict):
@@ -208,13 +208,13 @@ def process(job, tracking, first, start, seconds):
             writer.write(annotate(last, tracking))
             with LOCK:
                 job['progress'] = round((i+1)/count*90)
-            if tracking.bar_lost:
-                break
         writer.release()
         cap.release()
         cv2.imwrite(str(job['folder']/'path.png'), annotate(last, tracking))
         report = tracking.report()
-        report['stopped_on_bar_loss'] = tracking.bar_lost
+        report['stopped_on_bar_loss'] = False
+        report['tracking_version'] = 'recovery-2'
+        report['ended_with_bar_lost'] = tracking.bar_lost
         (job['folder']/'report.json').write_text(json.dumps(report, indent=2))
         if tracking.samples:
             with (job['folder']/'measurements.csv').open('w', newline='') as handle:

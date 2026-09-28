@@ -6,7 +6,7 @@ from analysis import Sample, depth_estimate, summarize
 
 
 class Session:
-    def __init__(self, search_radius=140):
+    def __init__(self, search_radius=300):
         self.search_radius = search_radius
         self.depth_enabled = False
         self.trackers = {}
@@ -52,9 +52,9 @@ class Session:
         bar_tracker = self.trackers["bar"]
         bar_tracker.search_radius = self.search_radius
         bar = bar_tracker.update(gray)
+        self.bar_lost = bar is None and bar_tracker.misses >= 5
         if bar is None:
             self.interrupted = True
-            self.bar_lost = bar_tracker.misses >= 5
         hip = knee = None
         if self.depth_enabled and not self.depth_lost and "hip" in self.trackers and "knee" in self.trackers:
             old_hip, old_knee = self.point("hip"), self.point("knee")

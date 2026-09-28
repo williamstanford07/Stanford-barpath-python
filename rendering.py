@@ -23,7 +23,7 @@ def annotate(frame, session, show_zone=True):
         for y in range(0, h, 18):
             cv2.line(out, (x0, y), (x0, min(h-1, y+8)), (150, 150, 150), 1)
     for name, tracker in session.trackers.items():
-        if tracker.point is None:
+        if tracker.point is None or tracker.misses:
             continue
         x, y = map(round, tracker.point)
         color = RED if name == "bar" else WHITE
@@ -37,6 +37,8 @@ def annotate(frame, session, show_zone=True):
     cv2.rectangle(out, (0, 0), (w, 57), (14, 14, 17), -1)
     cv2.putText(out, "STANFORD", (15, 28), cv2.FONT_HERSHEY_SIMPLEX, .9, RED, 2, cv2.LINE_AA)
     cv2.putText(out, "BARPATH / WILLIAM STANFORD / PYTHON", (15, 47), cv2.FONT_HERSHEY_SIMPLEX, .38, WHITE, 1, cv2.LINE_AA)
+    if session.samples and session.samples[-1].bar_x is None:
+        cv2.putText(out, "BAR NOT VISIBLE / SEARCHING", (15, 78), cv2.FONT_HERSHEY_SIMPLEX, .5, RED, 1, cv2.LINE_AA)
     if session.depth_enabled:
         label = "DEPTH UNAVAILABLE - RE-MARK POINTS" if session.depth_lost else "DEPTH: WAITING FOR STABLE MARKERS"
         if session.depth_streak >= 3 and not session.depth_lost:

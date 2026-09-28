@@ -37,7 +37,10 @@ def summarize(samples):
     result = {"tracked_frames": len(points), "missing_frames": len(samples)-len(points),
               "vertical_range_px": None, "maximum_drift_px": None, "sideways_spread_percent": None,
               "feedback": [], "depth": {"state": "unavailable", "deepest_stable_delta_px": None}}
-    if len(points) < 12:
+    interrupted = bool(result["missing_frames"] or any(s.tracking_gap for s in samples))
+    if interrupted:
+        result["feedback"] = ["Tracking has gaps. Full-rep path feedback is unavailable; this does not indicate a problem with your squat."]
+    elif len(points) < 12:
         result["feedback"] = ["Track a full descent and ascent before interpreting the path."]
     else:
         xs = np.array([s.bar_x for s in points])
@@ -60,8 +63,6 @@ def summarize(samples):
                 f"At the lowest tracked bar position, the bar is {abs(shift):.0f} image px {direction} from its start. Screen direction does not establish forward/backward movement.",
                 "A down-and-up movement returned near the starting height." if returned else "A return near the starting height was not established. This may be a partial rep.",
                 "Compare clips from the same camera position; this is not a technique score."]
-    if result["missing_frames"] or any(s.tracking_gap for s in samples):
-        result["feedback"].append("Tracking was interrupted. Gaps are not bar movement; re-track before comparing technique.")
     stable = [s for s in samples if s.depth_state in ("below", "above", "borderline") and s.depth_delta_px is not None]
     if stable:
         deepest = max(stable, key=lambda s: s.depth_delta_px)
