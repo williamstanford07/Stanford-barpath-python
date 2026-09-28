@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: stanford-barpath-python
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: BARPATH_PASSWORD
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
