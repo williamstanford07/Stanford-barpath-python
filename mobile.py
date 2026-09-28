@@ -88,14 +88,36 @@ def job_for(identifier):
     return JOBS[identifier]
 
 
-def frame_at(job, index):
-    cap = cv2.VideoCapture(str(job['source']))
+def open_video(source):
+    cap = cv2.VideoCapture(str(source))
+    # Apply phone display metadata once, at decoding, in every reading path.
+    cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
+    return cap
+
+
+def rotation_value(value):
+    angle = int(value)
+    if angle not in (0, 90, 180, 270):
+        raise ValueError('Rotation must be 0, 90, 180, or 270 degrees.')
+    return angle
+
+
+def orient(frame, rotation=0):
+    codes = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180,
+             270: cv2.ROTATE_90_COUNTERCLOCKWISE}
+    if rotation in codes:
+        frame = cv2.rotate(frame, codes[rotation])
+    return resize(frame)
+
+
+def frame_at(job, index, rotation=0):
+    cap = open_video(job['source'])
     try:
         cap.set(cv2.CAP_PROP_POS_FRAMES, index)
         ok, frame = cap.read()
         if not ok:
             raise ValueError('Could not read this frame. Choose an earlier frame or an H.264 MP4.')
-        return resize(frame)
+        return orient(frame, rotation)
     finally:
         cap.release()
 
@@ -129,7 +151,7 @@ def upload():
     folder.mkdir()
     source = folder/'source.video'
     file.save(source)
-    cap = cv2.VideoCapture(str(source))
+    cap = open_video(source)
     ok, first = cap.read()
     fps = float(cap.get(cv2.CAP_PROP_FPS))
     count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -149,7 +171,7 @@ def preview(identifier, frame):
     if frame >= job['count']:
         abort(400)
     try:
-        image = frame_at(job, frame)
+        image = frame_at(job, frame, rotation_value(request.args.get('rotation', 0)))
     except ValueError as error:
         return jsonify(error=str(error)), 400
     ok, data = cv2.imencode('.jpg', image)
@@ -170,7 +192,8 @@ def analyze(identifier):
         enabled = bool(options.get('depth'))
         if not 0 <= start < job['count'] or not isinstance(markers, dict):
             raise ValueError('Invalid starting frame.')
-        first = frame_at(job, start)
+        rotation = rotation_value(options.get('rotation', 0))
+        first = frame_at(job, start, rotation)
         tracking = Session(radius)
         tracking.depth_enabled = enabled
         for name in (['bar', 'hip', 'knee'] if enabled else ['bar']):
@@ -184,12 +207,12 @@ def analyze(identifier):
         if any(j['state'] == 'processing' for j in JOBS.values()):
             return jsonify(error='An analysis is already running.'), 409
         job.update(state='processing', progress=0, error=None, report=None)
-    POOL.submit(process, job, tracking, first, start, duration)
+    POOL.submit(process, job, tracking, first, start, duration, rotation)
     return jsonify(state='processing')
 
 
-def process(job, tracking, first, start, seconds):
-    cap = cv2.VideoCapture(str(job['source']))
+def process(job, tracking, first, start, seconds, rotation=0):
+    cap = open_video(job['source'])
     cap.set(cv2.CAP_PROP_POS_FRAMES, start+1)
     avi, mp4 = job['folder']/'clip.avi', job['folder']/'clip.mp4'
     writer = cv2.VideoWriter(str(avi), cv2.VideoWriter_fourcc(*'MJPG'), job['fps'], (first.shape[1], first.shape[0]))
@@ -203,7 +226,7 @@ def process(job, tracking, first, start, seconds):
             ok, frame = cap.read()
             if not ok:
                 break
-            last = resize(frame)
+            last = orient(frame, rotation)
             tracking.process(last, (start+i+1)/job['fps'])
             writer.write(annotate(last, tracking))
             with LOCK:
@@ -214,6 +237,8 @@ def process(job, tracking, first, start, seconds):
         report = tracking.report()
         report['stopped_on_bar_loss'] = False
         report['tracking_version'] = 'recovery-2'
+        report['orientation_version'] = 'orientation-3'
+        report['manual_rotation_clockwise'] = rotation
         report['ended_with_bar_lost'] = tracking.bar_lost
         (job['folder']/'report.json').write_text(json.dumps(report, indent=2))
         if tracking.samples:
