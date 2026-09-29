@@ -4,6 +4,6 @@ It's built with Python, OpenCV, Flask and HTML, and the hosted version runs on R
 What it does
 - Tracks a barbell point you select in the video
 - Draws the bar path as the lift plays
-- Tracks a selected hip point against a fixed knee-height line
+- Tracks a selected hip point against a fixed knee height line
 - Counts stable crossings below that line
 - Exports the video, a path image and tracking measurements
