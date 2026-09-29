@@ -40,7 +40,7 @@ def annotate(frame, session, show_zone=True):
     if session.samples and session.samples[-1].bar_x is None:
         cv2.putText(out, "BAR NOT VISIBLE / SEARCHING", (15, 78), cv2.FONT_HERSHEY_SIMPLEX, .5, RED, 1, cv2.LINE_AA)
     if session.depth_enabled:
-        label = "DEPTH UNAVAILABLE - RE-MARK POINTS" if session.depth_lost else "DEPTH: WAITING FOR STABLE MARKERS"
+        label = "DEPTH UNAVAILABLE / SEARCHING" if session.depth_lost else "DEPTH: WAITING FOR STABLE MARKERS"
         if session.depth_streak >= 3 and not session.depth_lost:
             label = "MARKED HIP " + {"above": "ABOVE KNEE", "below": "BELOW KNEE", "borderline": "NEAR KNEE / UNCLEAR"}[session.depth_state]
         cv2.rectangle(out, (0, h-33), (w, h), (14, 14, 17), -1)

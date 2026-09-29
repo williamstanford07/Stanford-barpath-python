@@ -17,8 +17,10 @@ class Match:
 
 
 class PointTracker:
-    def __init__(self, search_radius=300, patch_radius=16):
+    def __init__(self, search_radius=300, patch_radius=16, max_search_radius=None, motion_limit=None):
         self.search_radius = search_radius
+        self.max_search_radius = max_search_radius
+        self.motion_limit = motion_limit
         self.patch_radius = patch_radius
         self.point = None
         self.template = None
@@ -123,7 +125,15 @@ class PointTracker:
             # Keep an accepted nearby match. A larger region can introduce
             # unrelated lookalikes and make an otherwise valid match ambiguous.
             if match is None:
-                match = self._search(gray, min(max(gray.shape), self.search_radius+self.misses*48))
+                radius = min(max(gray.shape), self.search_radius+self.misses*48)
+                if self.max_search_radius is not None:
+                    radius = min(radius, self.max_search_radius)
+                match = self._search(gray, radius)
+        if match is not None and self.motion_limit is not None:
+            # Reject abrupt jumps even when another object looks similar.
+            allowance = min(60, self.motion_limit+self.misses*4)
+            if np.hypot(match.x-self.point[0], match.y-self.point[1]) > allowance:
+                match = None
         if match is None:
             self.misses += 1
             return None

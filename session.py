@@ -12,6 +12,7 @@ class Session:
         self.trackers = {}
         self.samples = []
         self.depth_lost = False
+        self.depth_had_gaps = False
         self.depth_state = "unavailable"
         self.depth_delta = None
         self.depth_streak = 0
@@ -30,7 +31,9 @@ class Session:
 
     def select(self, frame, name, x, y):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        tracker = PointTracker(self.search_radius if name == "bar" else min(60, self.search_radius))
+        tracker = PointTracker(self.search_radius if name == "bar" else 60,
+                               max_search_radius=None if name == "bar" else 60,
+                               motion_limit=12 if name == "bar" else None)
         tracker.select(gray, x, y)
         other = self.point("knee" if name == "hip" else "hip") if name != "bar" else None
         if other and math.dist(tracker.point, other) < 30:
@@ -41,6 +44,7 @@ class Session:
         self.bar_lost = self.interrupted = False
         self.depth_state, self.depth_delta, self.depth_streak = "unavailable", None, 0
         self.depth_lost = False
+        self.depth_had_gaps = False
         if self.point("hip") and self.point("knee"):
             self.uncertainty = max(8, math.dist(self.point("hip"), self.point("knee"))*.07)
 
@@ -56,17 +60,24 @@ class Session:
         if bar is None:
             self.interrupted = True
         hip = knee = None
-        if self.depth_enabled and not self.depth_lost and "hip" in self.trackers and "knee" in self.trackers:
+        if self.depth_enabled and "hip" in self.trackers and "knee" in self.trackers:
             old_hip, old_knee = self.point("hip"), self.point("knee")
+            snapshots = {n: self.trackers[n].__dict__.copy() for n in ('hip', 'knee')}
             hp, kp = self.trackers["hip"].update(gray), self.trackers["knee"].update(gray)
-            max_step = max(30, min(80, math.dist(old_hip, old_knee)*.35))
+            max_step = min(60, max(30, math.dist(old_hip, old_knee)*.35)
+                           + max(snapshots[n]['misses'] for n in snapshots)*5)
             if (hp is None or kp is None or math.dist((hp.x, hp.y), (kp.x, kp.y)) < 30
                     or math.dist(old_hip, (hp.x, hp.y)) > max_step or math.dist(old_knee, (kp.x, kp.y)) > max_step):
                 self.depth_lost = True
+                self.depth_had_gaps = True
                 self.depth_state, self.depth_delta, self.depth_streak = "unavailable", None, 0
-                self.trackers.pop("hip", None)
-                self.trackers.pop("knee", None)
+                # Preserve the last trusted pair. A rejected match must not
+                # become the template/position used to recover on later frames.
+                for name, snapshot in snapshots.items():
+                    self.trackers[name].__dict__.update(snapshot)
+                    self.trackers[name].misses = snapshot['misses']+1
             else:
+                self.depth_lost = False
                 hip, knee = (hp.x, hp.y), (kp.x, kp.y)
                 state, delta = depth_estimate(hip, knee, self.uncertainty)
                 self.depth_streak = self.depth_streak+1 if state == self.depth_state else 1
@@ -81,8 +92,10 @@ class Session:
 
     def report(self):
         report = summarize(self.samples)
-        report["depth"]["tracking_lost"] = self.depth_lost
-        if self.depth_lost:
+        report["depth"]["tracking_lost"] = self.depth_had_gaps
+        report["depth"]["ended_lost"] = self.depth_lost
+        report["depth"]["observed_state"] = report['depth']['state']
+        if self.depth_had_gaps:
             report["depth"]["state"] = "unavailable"
             report["depth"]["deepest_stable_delta_px"] = None
         return report
