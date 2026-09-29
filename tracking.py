@@ -146,3 +146,41 @@ class PointTracker:
         self.features = self._features(gray)
         self.misses = 0
         return match
+
+
+class RigidBarTracker(PointTracker):
+    """Track a local rigid surface, allowing the plate to rotate and scale."""
+    def _features(self, gray):
+        mask = np.zeros_like(gray)
+        cv2.circle(mask, tuple(round(v) for v in self.point), 35, 255, -1)
+        return cv2.goodFeaturesToTrack(gray, maxCorners=80, qualityLevel=.01,
+                                      minDistance=3, mask=mask, blockSize=3)
+
+    def _flow(self, gray):
+        if self.features is None or len(self.features) < 6 or self.previous is None:
+            return None
+        options = dict(winSize=(21,21), maxLevel=3,
+                       criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,30,.01))
+        nxt, valid, _ = cv2.calcOpticalFlowPyrLK(self.previous,gray,self.features,None,**options)
+        if nxt is None:
+            return None
+        back, bv, _ = cv2.calcOpticalFlowPyrLK(gray,self.previous,nxt,None,**options)
+        if back is None:
+            return None
+        a,b = self.features.reshape(-1,2),nxt.reshape(-1,2)
+        good = (valid.ravel()==1)&(bv.ravel()==1)&(np.linalg.norm(back.reshape(-1,2)-a,axis=1)<1)
+        if good.sum()<6:
+            return None
+        matrix,inliers = cv2.estimateAffinePartial2D(a[good],b[good],method=cv2.RANSAC,
+                                                    ransacReprojThreshold=1.5)
+        if matrix is None or inliers.sum()<6 or inliers.mean()<.75:
+            return None
+        scale = np.hypot(matrix[0,0],matrix[1,0])
+        if not .95 <= scale <= 1.05:
+            return None
+        x,y = matrix @ np.array([*self.point,1.0])
+        if np.hypot(x-self.point[0],y-self.point[1])>min(24,12+self.misses*2):
+            return None
+        if self._patch(gray,x,y) is None:
+            return None
+        return Match(float(x),float(y),float(inliers.mean()),'rigid_flow')
