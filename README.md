@@ -1,4 +1,4 @@
-# BarPath
+# STANFORD BarPath
 
 A squat video tracker by William Stanford, built with Python, OpenCV, Flask and HTML.
 
@@ -9,10 +9,10 @@ Upload a clip, select the bar end and watch its path through the lift. Optional 
 1. Upload a short side-view video.
 2. Choose a frame just before the descent and rotate the image upright if needed.
 3. Mark the center of the visible bar end.
-4. For depth, enable **Count depth crossings**, set the line at the upper knee and mark the hip crease.
+4. For depth, enable **Fixed-line depth counter**, set the line at the upper knee and mark the hip crease.
 5. Choose the clip length and select **Analyze lift**. Save the MP4 when it is ready.
 
-The default search radius is 300 pixels. The frame-number box accepts an exact starting frame. Changing the frame or rotation clears the markers.
+The default search radius is 300 pixels. Use the slider to select the starting frame. Changing the frame or rotation clears the markers.
 
 ## Tracking
 
