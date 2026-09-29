@@ -40,7 +40,7 @@ def annotate(frame, session, show_zone=True):
             cv2.line(out, (0, y), (w-1, y), WHITE, 1)
     cv2.rectangle(out, (0, 0), (w, 57), (14, 14, 17), -1)
     cv2.putText(out, "BarPath", (15, 28), cv2.FONT_HERSHEY_SIMPLEX, .9, RED, 2, cv2.LINE_AA)
-    cv2.putText(out, "BARPATH / WILLIAM STANFORD / PYTHON", (15, 47), cv2.FONT_HERSHEY_SIMPLEX, .38, WHITE, 1, cv2.LINE_AA)
+    cv2.putText(out, "SQUAT REVIEW / WILLIAM STANFORD", (15, 47), cv2.FONT_HERSHEY_SIMPLEX, .38, WHITE, 1, cv2.LINE_AA)
     if session.samples and session.samples[-1].bar_x is None:
         cv2.putText(out, "BAR NOT VISIBLE / SEARCHING", (15, 78), cv2.FONT_HERSHEY_SIMPLEX, .5, RED, 1, cv2.LINE_AA)
     if session.depth_enabled:

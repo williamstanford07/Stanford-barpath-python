@@ -13,9 +13,9 @@ if len(PASSWORD) < 24 or len(SECRET) < 32:
 app = mobile.app
 app.secret_key = SECRET
 app.config['SESSION_COOKIE_SECURE'] = True
-LOGIN = '''<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STANFORD · Sign in</title><style>body{background:#101014;color:#fff;font:18px system-ui;max-width:440px;margin:12vh auto;padding:24px}h1{color:#ff4650}input,button{box-sizing:border-box;width:100%;padding:16px;margin:12px 0;font:inherit}button{background:#ff4650;border:0;color:white}p{color:#bbb}</style>
-<h1>STANFORD</h1><p>Your private Python squat tracker.</p><form method="post" action="/login"><input type="hidden" name="csrf" value="{{csrf}}"><label for="password">Access password</label><input id="password" name="password" type="password" autocomplete="current-password" required><button>Open tracker</button></form><p>{{error}}</p>'''
+LOGIN = '''<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101010"><title>BarPath · Sign in</title><style>
+*{box-sizing:border-box}body{background:#101010;color:#f3f1ed;font:16px/1.5 Arial,Helvetica,sans-serif;max-width:440px;margin:12vh auto;padding:24px}h1{font-size:34px;letter-spacing:-1.5px;border-bottom:2px solid #ed3d43;padding-bottom:18px;margin-bottom:18px}p{color:#aaa9a5}form{margin-top:28px}label{font-size:14px}input,button{width:100%;padding:14px;margin:10px 0;font:inherit;border-radius:4px}input{background:#181818;border:1px solid #444;color:#fff}button{background:#ed3d43;border:0;color:#fff;font-weight:700;cursor:pointer}:focus-visible{outline:2px solid white;outline-offset:3px}.error{color:#ffacac}</style></head>
+<body><h1>BarPath</h1><p>Sign in to review your lifts.</p><form method="post" action="/login"><input type="hidden" name="csrf" value="{{csrf}}"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required><button>Open BarPath</button></form><p class="error" role="alert">{{error}}</p></body></html>'''
 
 def cloud_gate():
     if request.path == '/healthz':

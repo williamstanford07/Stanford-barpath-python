@@ -142,7 +142,7 @@ def upload():
         if any(j['state'] == 'processing' for j in JOBS.values()):
             return jsonify(error='Wait for the current analysis to finish.'), 409
         if len(JOBS) >= 5:
-            return jsonify(error='Five clips are loaded. Use Delete uploaded clips and results to make room.'), 409
+            return jsonify(error='Five clips are loaded. Use Clear saved clips to make room.'), 409
     file = request.files.get('video')
     if file is None:
         return jsonify(error='Choose a video.'), 400
@@ -236,7 +236,7 @@ def process(job, tracking, first, start, seconds, rotation=0):
         cv2.imwrite(str(job['folder']/'path.png'), annotate(last, tracking))
         report = tracking.report()
         report['stopped_on_bar_loss'] = False
-        report['tracking_version'] = 'recovery-4'
+        report['tracking_version'] = 'rigid-bar-fixed-line'
         report['first_bar_gap_frame'] = next((start+i+1 for i, s in enumerate(tracking.samples)
                                                if s.bar_x is None), None)
         report['first_depth_gap_frame'] = next((start+i+1 for i, s in enumerate(tracking.samples)
@@ -282,7 +282,7 @@ def result(identifier, kind):
     path = job['folder']/names[kind]
     if not path.exists():
         abort(404)
-    return send_file(path, as_attachment=request.args.get('download') == '1', download_name='stanford_'+path.name)
+    return send_file(path, as_attachment=request.args.get('download') == '1', download_name='barpath_'+path.name)
 
 
 if __name__ == '__main__':
